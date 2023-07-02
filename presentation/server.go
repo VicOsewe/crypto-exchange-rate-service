@@ -8,6 +8,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/VicOsewe/crypto-exchange-rate-service/infrastructure/services/coingecko"
+	rest "github.com/VicOsewe/crypto-exchange-rate-service/presentation/http/handlers"
+	"github.com/VicOsewe/crypto-exchange-rate-service/usecases"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -16,8 +20,18 @@ const (
 	serverTimeoutSeconds = 120
 )
 
+// InitHandlers initializes all the handlers dependencies
+func InitHandlers() *rest.RestfulAPIs {
+	cryptoService := coingecko.NewRemoteCoinBaseService()
+	usecases := usecases.NewCryptoExchange(cryptoService)
+	return rest.NewRestfulPIs(usecases)
+}
+
 func Router() (*mux.Router, error) {
 	r := mux.NewRouter()
+	h := InitHandlers()
+	RESTRoutes := r.PathPrefix("/api/v1/").Subrouter()
+	RESTRoutes.Path("/ping").Methods(http.MethodGet, http.MethodOptions).HandlerFunc(h.PingCryptoServer())
 	return r, nil
 }
 
