@@ -2,16 +2,19 @@ package coingecko
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 
 	"github.com/VicOsewe/crypto-exchange-rate-service/configs"
+	"github.com/VicOsewe/crypto-exchange-rate-service/domain/dto"
 )
 
 const (
-	pingUrl = "/ping"
+	pingUrl      = "/ping"
+	coinsListUrl = "/coins/list"
 )
 
 // RemoteCoinBaseService sets up remote coinbase service with all necessary dependencies
@@ -66,4 +69,23 @@ func (r *RemoteCoinBaseService) Ping() (string, error) {
 		return "", fmt.Errorf("unable to read coinbase response: %w", err)
 	}
 	return string(resp), nil
+}
+
+func (r *RemoteCoinBaseService) FetchAvailableCryptocurrencies() (*[]dto.Coins, error) {
+	url := fmt.Sprintf("%s%s", r.URL, coinsListUrl)
+	response, err := r.makeRequest(http.MethodGet, url, nil)
+	if err != nil {
+		return nil, fmt.Errorf("unable to fetch coin list: %v", err)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return nil, fmt.Errorf("unable to read coinbase response: %w", err)
+
+	}
+
+	var coinList []dto.Coins
+	if err := json.Unmarshal(body, &coinList); err != nil {
+		return nil, fmt.Errorf("error unmarshalling coin list: %v", err)
+	}
+	return &coinList, nil
 }
