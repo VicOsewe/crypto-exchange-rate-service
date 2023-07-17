@@ -54,3 +54,5 @@ func (rst *RestfulAPIs) PingCryptoServer() http.HandlerFunc {
 		RespondWithJSON(w, http.StatusOK, marshalled)
 	}
 }
+
+func (rst *RestfulAPIs) FetchExchangeRateForACryptoAgainstFiat() {}

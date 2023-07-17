@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/VicOsewe/crypto-exchange-rate-service/configs"
 	"github.com/VicOsewe/crypto-exchange-rate-service/domain/dto"
@@ -15,6 +16,7 @@ import (
 const (
 	pingUrl      = "/ping"
 	coinsListUrl = "/coins/list"
+	cryptoPrices = "/simple/price"
 )
 
 // RemoteCoinBaseService sets up remote coinbase service with all necessary dependencies
@@ -88,4 +90,30 @@ func (r *RemoteCoinBaseService) FetchAvailableCryptocurrencies() (*[]dto.Coins, 
 		return nil, fmt.Errorf("error unmarshalling coin list: %v", err)
 	}
 	return &coinList, nil
+}
+
+// FetchExchangeRateForACryptoAgainstFiat retrieves the exchange rates for the given cryptocurrency against a list of fiat
+// currencies in the url(for now it only retrieves for three USD, GBP,EUR)
+func (r *RemoteCoinBaseService) FetchExchangeRateForACryptoAgainstFiat(coinIDsList []string) (*map[string]dto.CryptoPrices, error) {
+	cryptoIDs := strings.Join(coinIDsList, ",")
+	url := fmt.Sprintf("%s%s?ids=%s&vs_currencies=usd,eur,gbp", r.URL, cryptoPrices, cryptoIDs)
+	response, err := r.makeRequest(http.MethodGet, url, nil)
+	if err != nil {
+		fmt.Println("Error decoding JSON:", err)
+		return nil, err
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Println("Error decoding JSON:", err)
+		return nil, err
+	}
+	var cryptoData map[string]dto.CryptoPrices
+
+	err = json.Unmarshal([]byte(body), &cryptoData)
+	if err != nil {
+		fmt.Println("Error decoding JSON:", err)
+		return nil, err
+	}
+
+	return &cryptoData, nil
 }
